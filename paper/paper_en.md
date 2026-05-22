@@ -26,11 +26,23 @@ The motivation is practical. The author created an original red-panda character,
 - **Q2.** What factor is rate-limiting for output quality (base model, learning rate, LoRA rank, or epoch count)?
 - **Q3.** Does increasing the number of training epochs improve quality monotonically?
 
-## 2. Preliminaries
+## 2. Related Work
 
-### 2.1 Diffusion Probabilistic Models
+This study is situated at the intersection of four research lineages: diffusion models, latent diffusion models, low-rank adaptation, and subject-driven generation.
 
-A diffusion model consists of a *forward process* that gradually adds Gaussian noise and a *reverse process* that traces it back. For data $x_0\sim q(x_0)$, the forward process is a Markov chain with variance schedule $\{\beta_t\}_{t=1}^{T}$:
+**Diffusion models.** A practical formulation of diffusion probabilistic models was established by the DDPM (Denoising Diffusion Probabilistic Models) of Ho et al. [1], which fixes the forward process as Gaussian noising and approximates the reverse process with a noise-predicting network. The noise-prediction loss in §3.1 builds on this formulation.
+
+**Latent diffusion models.** Rombach et al. [2] proposed the latent diffusion model (LDM), which runs the diffusion process in the latent space of a variational autoencoder rather than in pixel space, greatly improving the computational efficiency of high-resolution image synthesis. The Stable Diffusion family targeted here is built on this LDM.
+
+**Low-rank adaptation.** LoRA was proposed by Hu et al. [3], originally as an efficient fine-tuning method for large language models. The principle of freezing pre-trained weights and learning only a low-rank difference was subsequently extended to Transformers in general and to the U-Net of diffusion models. This study applies LoRA to Stable Diffusion.
+
+**Subject-driven generation.** The task of binding a specific subject to a model from a few reference images is known as subject-driven generation. The DreamBooth of Ruiz et al. [4] demonstrated a method to bind a specific subject to a text-to-image diffusion model using a unique identifier and few images. The concept binding via the trigger word used in this study belongs to this DreamBooth lineage; in particular, this study corresponds to realizing DreamBooth-style subject binding via LoRA rather than full fine-tuning (colloquially "DreamBooth-LoRA").
+
+## 3. Preliminaries
+
+### 3.1 Diffusion Probabilistic Models
+
+A diffusion model [1] consists of a *forward process* that gradually adds Gaussian noise and a *reverse process* that traces it back. For data $x_0\sim q(x_0)$, the forward process is a Markov chain with variance schedule $\{\beta_t\}_{t=1}^{T}$:
 
 $$q(x_t\mid x_{t-1}) = \mathcal{N}\big(x_t;\,\sqrt{1-\beta_t}\,x_{t-1},\,\beta_t\mathbf{I}\big).$$
 
@@ -44,11 +56,11 @@ $$\mathcal{L}(\theta)=\mathbb{E}_{x_0,\epsilon,t}\big[\lVert\epsilon-\epsilon_\t
 
 where $c$ is the conditioning variable (here, a text embedding).
 
-### 2.2 Latent Diffusion Models and Architecture
+### 3.2 Latent Diffusion Models and Architecture
 
-The latent diffusion model (LDM) adopted by Stable Diffusion compresses an image into a low-dimensional latent $z_0=\mathcal{E}(x_0)$ via a VAE encoder $\mathcal{E}$, and runs diffusion in latent space; the decoder $\mathcal{D}$ restores pixels. The noise predictor $\epsilon_\theta$ uses a U-Net, into which the text condition $c$ is injected via *cross-attention*. The condition $c$ is the embedding sequence from a text encoder (the CLIP text tower).
+The latent diffusion model (LDM) [2] adopted by Stable Diffusion compresses an image into a low-dimensional latent $z_0=\mathcal{E}(x_0)$ via a VAE encoder $\mathcal{E}$, and runs diffusion in latent space; the decoder $\mathcal{D}$ restores pixels. The noise predictor $\epsilon_\theta$ uses a U-Net, into which the text condition $c$ is injected via *cross-attention*. The condition $c$ is the embedding sequence from a text encoder (the CLIP text tower).
 
-### 2.3 Conditional Generation and Classifier-Free Guidance
+### 3.3 Conditional Generation and Classifier-Free Guidance
 
 At inference, classifier-free guidance (CFG) combines conditional and unconditional predictions with guidance scale $s\ge1$:
 
@@ -56,15 +68,15 @@ $$\tilde\epsilon_\theta=\epsilon_\theta(x_t,t,\varnothing)+s\big(\epsilon_\theta
 
 We set $s\approx7$.
 
-### 2.4 Low-Rank Adaptation (LoRA)
+### 3.4 Low-Rank Adaptation (LoRA)
 
-Let a pre-trained weight matrix be $W_0\in\mathbb{R}^{d\times k}$. LoRA freezes it and writes the adapted weight as
+Let a pre-trained weight matrix be $W_0\in\mathbb{R}^{d\times k}$. LoRA [3] freezes it and writes the adapted weight as
 
 $$W' = W_0 + \Delta W,\qquad \Delta W=\frac{\alpha}{r}\,B A,$$
 
 with $B\in\mathbb{R}^{d\times r}$, $A\in\mathbb{R}^{r\times k}$, rank $r\ll\min(d,k)$. The scalar $\alpha$ scales the adaptation ($\propto\alpha/r$). Only $A,B$ are trained ($r(d+k)$ parameters), far fewer than $dk$. Gaussian-initializing $A$ and zero-initializing $B$ guarantees $\Delta W=0$ at the start. We call $r$ the "LoRA rank" and $\alpha$ "alpha."
 
-### 2.5 Terminology
+### 3.5 Terminology
 
 | Term | Description |
 |---|---|
@@ -75,7 +87,7 @@ with $B\in\mathbb{R}^{d\times r}$, $A\in\mathbb{R}^{r\times k}$, rank $r\ll\min(
 | SDPA | PyTorch's native fast attention kernel. |
 | Trigger word | A unique token bound to the concept. |
 
-## 3. Problem Formulation
+## 4. Problem Formulation
 
 Let the target character be $\mathcal{C}$ and its reference set $\mathcal{X}=\{x^{(1)},\dots,x^{(N)}\}$ ($N=13$). Each image has a caption $c^{(i)}$ containing a trigger word $\tau$ (`masafee`). The goal is to learn a LoRA difference $\Delta\theta$, keeping $\epsilon_\theta$ frozen, by solving
 
@@ -83,9 +95,9 @@ $$\Delta\theta^{\star}=\arg\min_{\Delta\theta}\ \mathbb{E}_{i,\epsilon,t}\big[\l
 
 where $z_t^{(i)}$ is the noised latent of $\mathcal{E}(x^{(i)})$. Since $N$ is small, the problem is few-shot, and both the expressiveness of $\Delta\theta$ (rank $r$) and the training amount (epochs) are rate-limiting through the generalization–overfitting trade-off.
 
-## 4. Method
+## 5. Method
 
-### 4.1 Computing Environment
+### 5.1 Computing Environment
 
 | Item | Detail |
 |---|---|
@@ -95,21 +107,21 @@ where $z_t^{(i)}$ is the noised latent of $\mathcal{E}(x^{(i)})$. Since $N$ is s
 | Framework | kohya-ss/sd-scripts, PyTorch 2.5.1 + CUDA 12.4 |
 | Python | Python 3.11 via `uv` (system Python 3.14 incompatible) |
 
-### 4.2 Training Data and Selection Criteria
+### 5.2 Training Data and Selection Criteria
 
 The data was drawn from the author-created sticker set "Masafee" (16 stickers; Figure 1). The character has temporally consistent identifying features: goggles, a crown-patterned bandana, a ringed tail. One severely low-resolution image and two style-inconsistent rough sketches were excluded, yielding the training set $\mathcal{X}$ of **13 images** (all 1000×1000 px RGB).
 
 ![Figure 1](../学習データ_13枚.png)
 
-### 4.3 Caption Design and Trigger-Word Binding
+### 5.3 Caption Design and Trigger-Word Binding
 
-The trigger word $\tau=$`masafee` was fixed at the start of every caption, with variable attributes (pose, expression, background, presence of text) enumerated explicitly as tags so they become controllable. Invariant features (goggles, etc.) were left undescribed, residually binding to $\tau$. Baked-in text was handled by noting "with text" rather than cropping.
+The trigger word $\tau=$`masafee` was fixed at the start of every caption, with variable attributes (pose, expression, background, presence of text) enumerated explicitly as tags so they become controllable. Invariant features (goggles, etc.) were left undescribed, residually binding to $\tau$. This concept-binding design follows the DreamBooth [4] lineage. Baked-in text was handled by noting "with text" rather than cropping.
 
-### 4.4 Training Configuration
+### 5.4 Training Configuration
 
 The optimizer was 8-bit AdamW (quantized optimizer state to reduce VRAM); mixed precision was bfloat16; attention used SDPA. Gradient checkpointing and aspect-ratio bucketing were used, with horizontal-flip augmentation.
 
-## 5. Experiments
+## 6. Experiments
 
 **Experiment 1 (Feasibility):** Standard SD1.5, 512 px, $r=32$/$\alpha=16$, learning rate 1e-4, 16 epochs (1040 steps).
 
@@ -117,32 +129,32 @@ The optimizer was 8-bit AdamW (quantized optimizer state to reduce VRAM); mixed 
 
 **Experiment 3 (Epoch ablation):** The best condition extended to 60 epochs, comparing epochs 30/40/50/60 (fixed seed).
 
-## 6. Results
+## 7. Results
 
-### 6.1 Experiment 1: Feasibility
+### 7.1 Experiment 1: Feasibility
 
 About 9 minutes on the RTX 3060, ~3 GB VRAM. Identifying features were reproduced well and held-out poses were generated (**Q1 confirmed**). Two weaknesses appeared: (i) backgrounds darkened despite "white background", (ii) excessive shading.
 
-### 6.2 Experiment 2: Dominance of the Base Model
+### 7.2 Experiment 2: Dominance of the Base Model
 
 The comparison (Figure 2) was clear. SD1.5-base conditions darkened backgrounds and over-shaded; Counterfeit-base conditions gave clean white backgrounds and flat coloring close to the original style. The weaknesses were resolved **by switching the base model, not by tuning learning rate or LoRA rank**. **For Q2, the base model choice is dominant.** This is consistent with the structure of LoRA: learning only a *difference*, the stylistic prior is governed by the base model. The best condition was cf_lr1_d32 (Counterfeit + lr 1e-4 + rank 32).
 
 ![Figure 2a](../スイープ比較/sd15_lr1_d32.png)
 ![Figure 2b](../スイープ比較/cf_lr1_d32.png)
 
-### 6.3 Experiment 3: Performance Plateau over Epochs
+### 7.3 Experiment 3: Performance Plateau over Epochs
 
 Extending to 60 epochs (Figure 3), epochs 30/40/50/60 were nearly indistinguishable; **performance plateaued by epoch 30**. At epochs 50–60, increased saturation signaled mild overfitting. **For Q3, increasing epochs beyond ~30 does not improve quality.**
 
 ![Figure 3](../スイープ比較/延長テスト_epoch30-60.png)
 
-### 6.4 Generation with the Final Model
+### 7.4 Generation with the Final Model
 
 Using the best model (cf_lr1_d32, epoch 30), 12 held-out scenes were generated (Figure 4), preserving identity and the flat style. The rain scene initially darkened; explicitly specifying background luminance resolved it.
 
 ![Figure 4](../ショーケース_一覧.png)
 
-## 7. Discussion
+## 8. Discussion
 
 **Dominance of the base model.** LoRA learns only $\Delta W$; the stylistic prior is retained in the frozen $W_0$. When target style and prior diverge, a finite-rank $\Delta W$ cannot fully overwrite the style. Choosing a base model consistent with the target style precedes hyperparameter tuning.
 
@@ -152,14 +164,24 @@ Using the best model (cf_lr1_d32, epoch 30), 12 held-out scenes were generated (
 
 **Sufficiency of consumer GPUs.** Each run took 9–40 minutes, 3–8 GB VRAM; paid cloud computing is not required for an SD1.5-scale character LoRA.
 
-## 8. Limitations and Future Work
+## 9. Limitations and Future Work
 
 Evaluation was qualitative (visual inspection) without quantitative metrics (CLIP similarity, FID). The training set is a single character of 13 images. Baked-in text was handled by captioning, without a controlled comparison against cropping. Each sweep condition used a single seed. Future work: expanding training images, quantitative metrics, validation with SDXL, and generalization to multiple characters.
 
-## 9. Conclusion
+## 10. Conclusion
 
 Using only a consumer-grade GPU (RTX 3060), we performed LoRA fine-tuning of the author's original character "Masafee." We showed, with a reproducible procedure, that novel-pose generation with preserved identity is possible from 13 few-shot images (Q1); that output quality depends most strongly on the base model (Q2); and that performance plateaus at about 30 epochs (Q3).
 
 ## Appendix A: Key Hyperparameters (cf_lr1_d32)
 
 Base model: Counterfeit-V3.0; resolution: 768×768; LoRA rank/alpha: 32/16; learning rate: 1e-4 (cosine); optimizer: 8-bit AdamW; batch size: 2; epochs: 30; mixed precision: bfloat16; augmentation: horizontal flip; attention: SDPA.
+
+## References
+
+[1] J. Ho, A. Jain, and P. Abbeel. Denoising Diffusion Probabilistic Models. *Advances in Neural Information Processing Systems (NeurIPS)*, 2020.
+
+[2] R. Rombach, A. Blattmann, D. Lorenz, P. Esser, and B. Ommer. High-Resolution Image Synthesis with Latent Diffusion Models. *IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*, 2022.
+
+[3] E. J. Hu, Y. Shen, P. Wallis, Z. Allen-Zhu, Y. Li, S. Wang, L. Wang, and W. Chen. LoRA: Low-Rank Adaptation of Large Language Models. *International Conference on Learning Representations (ICLR)*, 2022.
+
+[4] N. Ruiz, Y. Li, V. Jampani, Y. Pritch, M. Rubinstein, and K. Aberman. DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation. *IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)*, 2023.

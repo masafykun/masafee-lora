@@ -47,11 +47,22 @@ The motivation of this work is practical and concrete. The author created an ori
 \end{itemize}
 The contribution of this paper is to provide experimental answers to these questions, together with a reproducible procedure.
 
+\section{Related Work}
+This study is situated at the intersection of four research lineages: diffusion models, latent diffusion models, low-rank adaptation, and subject-driven generation.
+
+\textbf{Diffusion models.} A practical formulation of diffusion probabilistic models was established by the DDPM (Denoising Diffusion Probabilistic Models) of Ho et al.~\cite{ho2020ddpm}, which fixes the forward process as Gaussian noising and approximates the reverse process with a noise-predicting network. The noise-prediction loss in Eq.~\eqref{eq:loss} of this paper builds on this formulation.
+
+\textbf{Latent diffusion models.} Rombach et al.~\cite{rombach2022ldm} proposed the latent diffusion model (LDM), which runs the diffusion process in the latent space of a variational autoencoder rather than in pixel space, greatly improving the computational efficiency of high-resolution image synthesis. The Stable Diffusion family targeted in this study is built on this LDM.
+
+\textbf{Low-rank adaptation.} LoRA was proposed by Hu et al.~\cite{hu2022lora}, originally as an efficient fine-tuning method for large language models. The principle of freezing pre-trained weights and learning only a low-rank difference was subsequently extended to Transformers in general and to the U-Net of diffusion models. This study applies LoRA to Stable Diffusion.
+
+\textbf{Subject-driven generation.} The task of binding a specific subject to a model from a few reference images is known as subject-driven generation. The DreamBooth of Ruiz et al.~\cite{ruiz2023dreambooth} demonstrated a method to bind a specific subject to a text-to-image diffusion model using a unique identifier and few images. The concept binding via the trigger word $\tau$ used in this study belongs to this DreamBooth lineage. In particular, this study corresponds to realizing DreamBooth-style subject binding via LoRA rather than full fine-tuning (colloquially termed ``DreamBooth-LoRA''), with an emphasis on demonstration under the resource constraint of a consumer-grade GPU.
+
 \section{Preliminaries}
 This section gives the formulation of diffusion models, latent diffusion models, and low-rank adaptation needed for the subsequent discussion.
 
 \subsection{Diffusion Probabilistic Models}
-A diffusion model is a latent-variable generative model consisting of a \emph{forward process} that gradually adds Gaussian noise to data, and a \emph{reverse process} that traces it back. For data $x_0\sim q(x_0)$, the forward process is a Markov chain with a variance schedule $\{\beta_t\}_{t=1}^{T}$ ($0<\beta_t<1$):
+A diffusion model~\cite{ho2020ddpm} is a latent-variable generative model consisting of a \emph{forward process} that gradually adds Gaussian noise to data, and a \emph{reverse process} that traces it back. For data $x_0\sim q(x_0)$, the forward process is a Markov chain with a variance schedule $\{\beta_t\}_{t=1}^{T}$ ($0<\beta_t<1$):
 \begin{equation}
 q(x_t\mid x_{t-1}) = \mathcal{N}\!\big(x_t;\,\sqrt{1-\beta_t}\,x_{t-1},\,\beta_t\mathbf{I}\big).
 \end{equation}
@@ -68,7 +79,7 @@ As $t\to T$, $\bar\alpha_t\to 0$ and $x_T$ approaches a standard normal. The rev
 where $c$ is the conditioning variable, here the embedding of a text description. Equation~\eqref{eq:loss} is evaluated by sampling $t$ uniformly and constructing $x_t$ via Eq.~\eqref{eq:closedform}.
 
 \subsection{Latent Diffusion Models and Architecture}
-Running the diffusion process directly in pixel space is computationally inefficient. The latent diffusion model (LDM) adopted by Stable Diffusion compresses an image into a low-dimensional latent representation $z_0=\mathcal{E}(x_0)$ via the encoder $\mathcal{E}$ of a variational autoencoder (VAE), and runs the diffusion process in latent space. Generated latents are restored to pixel space by the decoder $\mathcal{D}$ ($\hat{x}=\mathcal{D}(z_0)$). The noise predictor $\epsilon_\theta$ uses a U-Net architecture, into which the text condition $c$ is injected at each resolution level through \emph{cross-attention}. The condition $c$ is the embedding sequence produced by a text encoder (the text tower of CLIP) mapping the input sentence to token embeddings. The SD~1.5 family targeted here is a representative open-weight model of this LDM design.
+Running the diffusion process directly in pixel space is computationally inefficient. The latent diffusion model (LDM)~\cite{rombach2022ldm} adopted by Stable Diffusion compresses an image into a low-dimensional latent representation $z_0=\mathcal{E}(x_0)$ via the encoder $\mathcal{E}$ of a variational autoencoder (VAE), and runs the diffusion process in latent space. Generated latents are restored to pixel space by the decoder $\mathcal{D}$ ($\hat{x}=\mathcal{D}(z_0)$). The noise predictor $\epsilon_\theta$ uses a U-Net architecture, into which the text condition $c$ is injected at each resolution level through \emph{cross-attention}. The condition $c$ is the embedding sequence produced by a text encoder (the text tower of CLIP) mapping the input sentence to token embeddings. The SD~1.5 family targeted here is a representative open-weight model of this LDM design.
 
 \subsection{Conditional Generation and Classifier-Free Guidance}
 To strengthen adherence to the condition $c$, classifier-free guidance (CFG) is widely used at inference. Combining the conditional prediction $\epsilon_\theta(x_t,t,c)$ and the unconditional prediction $\epsilon_\theta(x_t,t,\varnothing)$ ($\varnothing$ being the empty condition), an extrapolated prediction is used with guidance scale $s\ge 1$:
@@ -78,7 +89,7 @@ To strengthen adherence to the condition $c$, classifier-free guidance (CFG) is 
 In this study, $s$ (the implementation's \texttt{scale}) was set around $7$.
 
 \subsection{Low-Rank Adaptation (LoRA)}
-Let a weight matrix of a linear layer of the pre-trained model be $W_0\in\mathbb{R}^{d\times k}$. Whereas full fine-tuning updates $W_0$ itself, LoRA freezes it and learns only a low-rank difference. The adapted weight is written
+Let a weight matrix of a linear layer of the pre-trained model be $W_0\in\mathbb{R}^{d\times k}$. Whereas full fine-tuning updates $W_0$ itself, LoRA~\cite{hu2022lora} freezes it and learns only a low-rank difference. The adapted weight is written
 \begin{equation}
 W' = W_0 + \Delta W,\qquad \Delta W=\frac{\alpha}{r}\,B A,
 \label{eq:lora}
@@ -145,7 +156,7 @@ The training data was drawn from the author-created sticker set ``Masafee'' (16 
 \end{figure*}
 
 \subsection{Caption Design and Trigger-Word Binding}
-Each caption $c^{(i)}$ was designed from the viewpoint of concept binding. The trigger word $\tau=\texttt{masafee}$ was fixed at the start of every caption, and \emph{attributes intended to be variable} (pose, expression, background, presence of text) were enumerated explicitly as tags. Explicitly stated attributes are learned as independent concepts and become controllable at inference. Conversely, \emph{invariant character features} (goggles, bandana, etc.) were deliberately left undescribed, so that their visual features are residually bound to $\tau$. This exploits the empirical rule that visual regularities absent from captions are absorbed into the trigger word. Text baked into the stickers was handled by noting ``with text'' in captions rather than cropping, so that text and the character body are learned as separate factors.
+Each caption $c^{(i)}$ was designed from the viewpoint of concept binding, as exemplified by DreamBooth~\cite{ruiz2023dreambooth}. The trigger word $\tau=\texttt{masafee}$ was fixed at the start of every caption, and \emph{attributes intended to be variable} (pose, expression, background, presence of text) were enumerated explicitly as tags. Explicitly stated attributes are learned as independent concepts and become controllable at inference. Conversely, \emph{invariant character features} (goggles, bandana, etc.) were deliberately left undescribed, so that their visual features are residually bound to $\tau$. This exploits the empirical rule that visual regularities absent from captions are absorbed into the trigger word. Text baked into the stickers was handled by noting ``with text'' in captions rather than cropping, so that text and the character body are learned as separate factors.
 
 \subsection{Training Configuration}
 The optimizer was 8-bit AdamW, quantizing the optimizer state to reduce VRAM consumption. Mixed precision used bfloat16, and attention used PyTorch's native SDPA, avoiding a dependency on additional libraries. Gradient checkpointing and aspect-ratio bucketing were also employed, and horizontal flip was applied as data augmentation. The number of optimization steps per epoch is $\lceil N\cdot R/B\rceil$ ($R$: image repeats, $B$: batch size).
@@ -212,5 +223,12 @@ Base model: Counterfeit-V3.0 (SD1.5-family illustration model); resolution: $768
 
 \section{Reproducibility}
 The full training environment, sweep results, epoch-extension artifacts, this paper, and all scripts are included in the public repository.
+
+\begin{thebibliography}{9}
+\bibitem{ho2020ddpm} J.~Ho, A.~Jain, and P.~Abbeel. Denoising Diffusion Probabilistic Models. \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 2020.
+\bibitem{rombach2022ldm} R.~Rombach, A.~Blattmann, D.~Lorenz, P.~Esser, and B.~Ommer. High-Resolution Image Synthesis with Latent Diffusion Models. \textit{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2022.
+\bibitem{hu2022lora} E.~J. Hu, Y.~Shen, P.~Wallis, Z.~Allen-Zhu, Y.~Li, S.~Wang, L.~Wang, and W.~Chen. LoRA: Low-Rank Adaptation of Large Language Models. \textit{International Conference on Learning Representations (ICLR)}, 2022.
+\bibitem{ruiz2023dreambooth} N.~Ruiz, Y.~Li, V.~Jampani, Y.~Pritch, M.~Rubinstein, and K.~Aberman. DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation. \textit{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2023.
+\end{thebibliography}
 
 \end{document}

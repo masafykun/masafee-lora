@@ -48,11 +48,22 @@
 \end{itemize}
 本論文の貢献は、これらの設問に対する実験的回答を、再現可能な手順とともに提示する点にある。
 
+\section{関連研究}
+本研究は、拡散モデル・潜在拡散モデル・低ランク適応・被写体駆動生成という四つの研究系譜の交点に位置づけられる。
+
+\textbf{拡散モデル。} 拡散確率モデルの実用的な定式化は Ho ら~\cite{ho2020ddpm} の DDPM（Denoising Diffusion Probabilistic Models）により確立された。DDPM は前向き過程を固定的なガウス雑音付加とし、逆過程を雑音予測ネットワークで近似する枠組みを与えた。本論文の式\eqref{eq:loss}に示す雑音予測損失はこの定式化に基づく。
+
+\textbf{潜在拡散モデル。} Rombach ら~\cite{rombach2022ldm} は、拡散過程を画素空間ではなく変分オートエンコーダの潜在空間で実行する潜在拡散モデル（LDM）を提案し、高解像度画像合成の計算効率を大幅に改善した。本研究が対象とする Stable Diffusion は、この LDM を基盤とするモデル群である。
+
+\textbf{低ランク適応。} LoRA は Hu ら~\cite{hu2022lora} により、当初は大規模言語モデルの効率的な微調整手法として提案された。事前学習済み重みを凍結し低ランク差分のみを学習するという原理は、その後 Transformer 一般、さらに拡散モデルの U-Net へと応用が拡大した。本研究はこの LoRA を Stable Diffusion へ適用するものである。
+
+\textbf{被写体駆動生成。} 少数の参照画像から特定の被写体をモデルに束縛する課題は、被写体駆動生成（subject-driven generation）と呼ばれる。Ruiz ら~\cite{ruiz2023dreambooth} の DreamBooth は、固有識別子（unique identifier）と少数画像により特定被写体を text-to-image 拡散モデルへ束縛する手法を示した。本研究で用いるトリガー語 $\tau$ による概念束縛は、この DreamBooth の系譜に連なる。とりわけ本研究は、DreamBooth 的な被写体束縛を全パラメータ微調整ではなく LoRA で実現する構成（慣用的に「DreamBooth-LoRA」と称される）に相当し、消費者向けGPUという資源制約下での実証に主眼を置く点に特色がある。
+
 \section{準備：理論的背景}
 本節では、以降の議論に必要な拡散モデル、潜在拡散モデル、および低ランク適応の定式化を与える。
 
 \subsection{拡散確率モデル}
-拡散モデルは、データに段階的にガウス雑音を付加する\emph{前向き過程}（forward process）と、それを逆にたどる\emph{逆過程}（reverse process）からなる潜在変数生成モデルである。データ $x_0\sim q(x_0)$ に対し、前向き過程は分散スケジュール $\{\beta_t\}_{t=1}^{T}$（$0<\beta_t<1$）を持つマルコフ連鎖
+拡散モデル~\cite{ho2020ddpm}は、データに段階的にガウス雑音を付加する\emph{前向き過程}（forward process）と、それを逆にたどる\emph{逆過程}（reverse process）からなる潜在変数生成モデルである。データ $x_0\sim q(x_0)$ に対し、前向き過程は分散スケジュール $\{\beta_t\}_{t=1}^{T}$（$0<\beta_t<1$）を持つマルコフ連鎖
 \begin{equation}
 q(x_t\mid x_{t-1}) = \mathcal{N}\!\big(x_t;\,\sqrt{1-\beta_t}\,x_{t-1},\,\beta_t\mathbf{I}\big)
 \end{equation}
@@ -69,7 +80,7 @@ x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1-\bar\alpha_t}\,\epsilon,\qquad \epsilon
 の最小化として行われる。ここで $c$ は条件付け変数（conditioning）であり、本研究ではテキスト記述に対応する埋め込みである。式\eqref{eq:loss}は、時刻 $t$ を一様にサンプリングし、式\eqref{eq:closedform}で $x_t$ を構成して評価される。
 
 \subsection{潜在拡散モデルとアーキテクチャ}
-画素空間で直接拡散過程を扱うことは計算量の観点で非効率である。Stable Diffusion が採用する潜在拡散モデル（latent diffusion model; LDM）は、変分オートエンコーダ（variational autoencoder; VAE）のエンコーダ $\mathcal{E}$ により画像を低次元の潜在表現 $z_0=\mathcal{E}(x_0)$ に圧縮し、潜在空間上で拡散過程を実行する。生成された潜在変数はデコーダ $\mathcal{D}$ により画素空間へ復元される（$\hat{x}=\mathcal{D}(z_0)$）。雑音予測器 $\epsilon_\theta$ には U-Net 構造が用いられ、その内部の\emph{交差注意}（cross-attention）機構を介してテキスト条件 $c$ が各解像度階層に注入される。条件 $c$ は、テキストエンコーダ（CLIP のテキスト側エンコーダ）が入力文をトークン列の埋め込み系列へ写像したものである。本研究が対象とする SD~1.5 系列は、この LDM 構成を採る代表的なオープンウェイトモデルである。
+画素空間で直接拡散過程を扱うことは計算量の観点で非効率である。Stable Diffusion が採用する潜在拡散モデル（latent diffusion model; LDM）~\cite{rombach2022ldm}は、変分オートエンコーダ（variational autoencoder; VAE）のエンコーダ $\mathcal{E}$ により画像を低次元の潜在表現 $z_0=\mathcal{E}(x_0)$ に圧縮し、潜在空間上で拡散過程を実行する。生成された潜在変数はデコーダ $\mathcal{D}$ により画素空間へ復元される（$\hat{x}=\mathcal{D}(z_0)$）。雑音予測器 $\epsilon_\theta$ には U-Net 構造が用いられ、その内部の\emph{交差注意}（cross-attention）機構を介してテキスト条件 $c$ が各解像度階層に注入される。条件 $c$ は、テキストエンコーダ（CLIP のテキスト側エンコーダ）が入力文をトークン列の埋め込み系列へ写像したものである。本研究が対象とする SD~1.5 系列は、この LDM 構成を採る代表的なオープンウェイトモデルである。
 
 \subsection{条件付き生成とclassifier-free guidance}
 条件 $c$ への追従性を強めるため、推論時には classifier-free guidance（CFG）が広く用いられる。条件付き予測 $\epsilon_\theta(x_t,t,c)$ と無条件予測 $\epsilon_\theta(x_t,t,\varnothing)$（$\varnothing$ は空条件）を併用し、ガイダンス強度 $s\ge 1$ により
@@ -79,7 +90,7 @@ x_t = \sqrt{\bar\alpha_t}\,x_0 + \sqrt{1-\bar\alpha_t}\,\epsilon,\qquad \epsilon
 と外挿した予測を用いる。本研究の生成では $s$（実装上の \texttt{scale}）を $7$ 前後に設定した。
 
 \subsection{低ランク適応（LoRA）}
-事前学習済みモデルの線形層の重み行列を $W_0\in\mathbb{R}^{d\times k}$ とする。全パラメータ微調整では $W_0$ 自体を更新するが、LoRA はこれを凍結し、低ランクの差分のみを学習する。すなわち適応後の重みを
+事前学習済みモデルの線形層の重み行列を $W_0\in\mathbb{R}^{d\times k}$ とする。全パラメータ微調整では $W_0$ 自体を更新するが、LoRA~\cite{hu2022lora} はこれを凍結し、低ランクの差分のみを学習する。すなわち適応後の重みを
 \begin{equation}
 W' = W_0 + \Delta W,\qquad \Delta W=\frac{\alpha}{r}\,B A
 \label{eq:lora}
@@ -147,7 +158,7 @@ Python環境 & システムPython（3.14）が非対応のため \texttt{uv} で
 \end{figure*}
 
 \subsection{キャプション設計とトリガー語束縛}
-各画像のキャプション $c^{(i)}$ は、概念束縛（concept binding）の観点から設計した。固有語 $\tau=\texttt{masafee}$ を全キャプションの先頭に固定配置し、\emph{可変にしたい属性}（ポーズ・表情・背景・文字の有無）をタグとして明示的に列挙した。明示された属性は独立の概念として学習され、推論時に制御可能となる。一方、\emph{キャラクター固有の不変要素}（ゴーグル、バンダナ等）はあえて記述しないことで、それらの視覚的特徴が残差的に $\tau$ へ束縛されるよう誘導した。これは、キャプションに現れない視覚的規則性がトリガー語に吸収されるという経験則を利用したものである。スタンプに焼き込まれた文字については、トリミング除去を行わず「文字を含む」旨をキャプションに明記することで、文字とキャラクター本体を分離して学習させた。
+各画像のキャプション $c^{(i)}$ は、DreamBooth~\cite{ruiz2023dreambooth} に代表される概念束縛（concept binding）の観点から設計した。固有語 $\tau=\texttt{masafee}$ を全キャプションの先頭に固定配置し、\emph{可変にしたい属性}（ポーズ・表情・背景・文字の有無）をタグとして明示的に列挙した。明示された属性は独立の概念として学習され、推論時に制御可能となる。一方、\emph{キャラクター固有の不変要素}（ゴーグル、バンダナ等）はあえて記述しないことで、それらの視覚的特徴が残差的に $\tau$ へ束縛されるよう誘導した。これは、キャプションに現れない視覚的規則性がトリガー語に吸収されるという経験則を利用したものである。スタンプに焼き込まれた文字については、トリミング除去を行わず「文字を含む」旨をキャプションに明記することで、文字とキャラクター本体を分離して学習させた。
 
 \subsection{学習設定}
 最適化には 8-bit AdamW を用い、最適化器状態を量子化することで VRAM 消費を抑制した。混合精度には bfloat16 を採用し、注意計算には PyTorch 標準の SDPA を用いることで追加ライブラリへの依存を排した。さらに勾配チェックポイントおよびアスペクト比バケットを併用した。データ拡張として左右反転を適用した。1エポックあたりの最適化ステップ数は $\lceil N\cdot R/B\rceil$（$R$: 画像反復回数、$B$: バッチサイズ）で与えられる。
@@ -214,5 +225,12 @@ Python環境 & システムPython（3.14）が非対応のため \texttt{uv} で
 
 \section{再現環境}
 学習環境一式・スイープ結果・エポック延長実験の成果物、および本論文・スクリプトは公開リポジトリに収録した。
+
+\begin{thebibliography}{9}
+\bibitem{ho2020ddpm} J.~Ho, A.~Jain, and P.~Abbeel. Denoising Diffusion Probabilistic Models. \textit{Advances in Neural Information Processing Systems (NeurIPS)}, 2020.
+\bibitem{rombach2022ldm} R.~Rombach, A.~Blattmann, D.~Lorenz, P.~Esser, and B.~Ommer. High-Resolution Image Synthesis with Latent Diffusion Models. \textit{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2022.
+\bibitem{hu2022lora} E.~J. Hu, Y.~Shen, P.~Wallis, Z.~Allen-Zhu, Y.~Li, S.~Wang, L.~Wang, and W.~Chen. LoRA: Low-Rank Adaptation of Large Language Models. \textit{International Conference on Learning Representations (ICLR)}, 2022.
+\bibitem{ruiz2023dreambooth} N.~Ruiz, Y.~Li, V.~Jampani, Y.~Pritch, M.~Rubinstein, and K.~Aberman. DreamBooth: Fine Tuning Text-to-Image Diffusion Models for Subject-Driven Generation. \textit{IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)}, 2023.
+\end{thebibliography}
 
 \end{document}
