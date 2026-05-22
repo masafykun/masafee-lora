@@ -1,0 +1,5 @@
+masafee, red panda, upper body, waving hand, smiling, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 100 --s 28 --l 7
+masafee, red panda, full body, jumping, happy, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 200 --s 28 --l 7
+masafee, red panda, holding a coffee cup, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 300 --s 28 --l 7
+masafee, red panda, portrait, angry face, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 400 --s 28 --l 7
+masafee, red panda, sleeping, curled up, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 500 --s 28 --l 7

@@ -1,0 +1,1 @@
+masafee, red panda, upper body, waving hand, smiling, white background --n lowres, bad anatomy, blurry, text, watermark --w 512 --h 512 --d 42 --s 24 --l 7

@@ -1,0 +1,12 @@
+masafee, red panda, full body, dancing happily, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1001 --s 28 --l 7
+masafee, red panda, eating ramen with chopsticks, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1002 --s 28 --l 7
+masafee, red panda, reading a book, sitting, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1003 --s 28 --l 7
+masafee, red panda, holding a big heart, blushing, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1004 --s 28 --l 7
+masafee, red panda, wearing a santa hat, christmas, snow --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1005 --s 28 --l 7
+masafee, red panda, peace sign, winking, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1006 --s 28 --l 7
+masafee, red panda, chef hat, cooking, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1007 --s 28 --l 7
+masafee, red panda, crying with tears, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1008 --s 28 --l 7
+masafee, red panda, thumbs up, big smile, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1009 --s 28 --l 7
+masafee, red panda, playing electric guitar, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1010 --s 28 --l 7
+masafee, red panda, sitting at a laptop, working, white background --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1011 --s 28 --l 7
+masafee, red panda, full body, running in the rain with umbrella --n lowres, bad anatomy, blurry, text, watermark, extra limbs --w 512 --h 512 --d 1012 --s 28 --l 7
