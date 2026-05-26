@@ -2,6 +2,13 @@ cff-version: 1.2.0
 title: "Masafee LoRA: Single-GPU LoRA Fine-tuning of an Original Character on Stable Diffusion"
 message: "If you use this software or model, please cite it using this metadata."
 type: software
+version: v1.0.0
+date-released: "2026-05-26"
+doi: "10.5281/zenodo.20397946"
+identifiers:
+  - type: doi
+    value: "10.5281/zenodo.20397946"
+    description: "Zenodo archive of release v1.0.0"
 authors:
   - family-names: Suzuki
     given-names: Masato

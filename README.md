@@ -4,7 +4,7 @@
 
 個人制作のオリジナルキャラクター「マサフィー」（LINEスタンプのレッサーパンダ）を、Stable Diffusion の LoRA ファインチューニングで再現し、新しいポーズ・場面のイラストを生成できるようにした実験プロジェクトです。学習はクラウドの有料計算資源を使わず、**自宅の NVIDIA GeForce RTX 3060 1台**のみで完結させました。実験の手順・比較・知見は論文（日英 / Markdown・PDF）にまとめています。
 
-![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square) ![Stable Diffusion](https://img.shields.io/badge/Stable%20Diffusion-1.5-8A2BE2?style=flat-square) ![LoRA](https://img.shields.io/badge/method-LoRA-34d399?style=flat-square) ![GPU](https://img.shields.io/badge/GPU-RTX%203060%2012GB-76b900?style=flat-square) [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-masafy%2Fmasafee--lora-FFD21E?style=flat-square)](https://huggingface.co/masafy/masafee-lora) [![ORCID](https://img.shields.io/badge/ORCID-0009--0000--7977--2756-A6CE39?style=flat-square&logo=orcid&logoColor=white)](https://orcid.org/0009-0000-7977-2756)
+![License](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square) ![Stable Diffusion](https://img.shields.io/badge/Stable%20Diffusion-1.5-8A2BE2?style=flat-square) ![LoRA](https://img.shields.io/badge/method-LoRA-34d399?style=flat-square) ![GPU](https://img.shields.io/badge/GPU-RTX%203060%2012GB-76b900?style=flat-square) [![Hugging Face](https://img.shields.io/badge/🤗%20Hugging%20Face-masafy%2Fmasafee--lora-FFD21E?style=flat-square)](https://huggingface.co/masafy/masafee-lora) [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20397946.svg)](https://doi.org/10.5281/zenodo.20397946) [![ORCID](https://img.shields.io/badge/ORCID-0009--0000--7977--2756-A6CE39?style=flat-square&logo=orcid&logoColor=white)](https://orcid.org/0009-0000-7977-2756)
 
 🔗 **[キャラクター「マサフィー」LINEスタンプ](https://store.line.me/stickershop/product/19794926/ja)** · 🤗 **[Hugging Face で学習済みLoRAを配布中](https://huggingface.co/masafy/masafee-lora)**
 
@@ -113,12 +113,14 @@ bash scripts/train.sh
   title        = {{Masafee LoRA: Single-GPU LoRA Fine-tuning of an
                    Original Character on Stable Diffusion}},
   year         = {2026},
-  url          = {https://github.com/masafykun/masafee-lora},
+  version      = {v1.0.0},
+  doi          = {10.5281/zenodo.20397946},
+  url          = {https://doi.org/10.5281/zenodo.20397946},
   orcid        = {0009-0000-7977-2756}
 }
 ```
 
-> Zenodo DOI（永続アーカイブ）は最初のreleaseタグ後に発行されます。発行後、ここに追記します。
+**DOI (永続アーカイブ):** [10.5281/zenodo.20397946](https://doi.org/10.5281/zenodo.20397946)
 
 ---
 
