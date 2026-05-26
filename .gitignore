@@ -13,3 +13,8 @@ __pycache__/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude Code (AI agent local context — never publish)
+CLAUDE.md
+BUILD_LOG.md
+.claude/
