@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+title: "Masafee LoRA: Single-GPU LoRA Fine-tuning of an Original Character on Stable Diffusion"
+message: "If you use this software or model, please cite it using this metadata."
+type: software
+authors:
+  - family-names: Suzuki
+    given-names: Masato
+    alias: masafykun
+    orcid: "https://orcid.org/0009-0000-7977-2756"
+    website: "https://masafy.org/"
+repository-code: "https://github.com/masafykun/masafee-lora"
+url: "https://huggingface.co/masafy/masafee-lora"
+license: MIT
+keywords:
+  - lora
+  - low-rank-adaptation
+  - stable-diffusion
+  - fine-tuning
+  - character-generation
+  - consumer-gpu
+  - kohya-ss
+abstract: >
+  Empirical study of LoRA fine-tuning a Stable Diffusion model
+  to reproduce an original character ("Masafee", a red panda)
+  on a single consumer GPU (NVIDIA GeForce RTX 3060 12GB).
+  The project compares six training conditions across base
+  models, learning rates, and LoRA ranks, and runs an
+  epoch-extension ablation up to 60 epochs. Findings: (1)
+  output quality is most strongly determined by the base
+  model choice; (2) training plateaus around epoch 30 before
+  drifting to overfitting; (3) output quality is bounded by
+  the training image count. Paper, training scripts, the
+  best LoRA weights, and full comparison grids are included.

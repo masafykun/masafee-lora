@@ -1,0 +1,36 @@
+{
+  "title": "Masafee LoRA: Single-GPU LoRA Fine-tuning of an Original Character on Stable Diffusion",
+  "description": "<p>Empirical study of LoRA fine-tuning a Stable Diffusion model to reproduce an original character (\"Masafee\", a red panda) on a single consumer GPU (NVIDIA GeForce RTX 3060 12GB). The project compares six training conditions across base models, learning rates, and LoRA ranks, and runs an epoch-extension ablation up to 60 epochs.</p><p><b>Key findings:</b> (1) output quality is most strongly determined by the base model choice; (2) training plateaus around epoch 30 before drifting to overfitting; (3) output quality is bounded by the training image count.</p><p>Paper (Japanese / English, two-column PDF), training scripts, the best LoRA weights, and full comparison grids are included. The trained LoRA weights are also distributed on <a href=\"https://huggingface.co/masafy/masafee-lora\">Hugging Face</a>.</p>",
+  "creators": [
+    {
+      "name": "Suzuki, Masato",
+      "orcid": "0009-0000-7977-2756"
+    }
+  ],
+  "upload_type": "software",
+  "license": "MIT",
+  "access_right": "open",
+  "keywords": [
+    "LoRA",
+    "Low-Rank Adaptation",
+    "Stable Diffusion",
+    "fine-tuning",
+    "character generation",
+    "consumer GPU",
+    "kohya-ss",
+    "RTX 3060"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://github.com/masafykun/masafee-lora",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    },
+    {
+      "identifier": "https://huggingface.co/masafy/masafee-lora",
+      "relation": "isSupplementedBy",
+      "resource_type": "software"
+    }
+  ],
+  "language": "eng"
+}
